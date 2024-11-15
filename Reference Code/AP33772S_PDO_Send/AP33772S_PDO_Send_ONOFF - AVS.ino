@@ -51,11 +51,23 @@ typedef struct {
 // Declare an array of SRC_SPRandEPR_PDO_Fields
 SRC_SPRandEPR_PDO_Fields SRC_SPRandEPRpdoArray[MAX_PDO_ENTRIES];  
 
-
+typedef struct {
+  union {
+    struct {
+      unsigned int VOLTAGE_SEL: 8;  // Bits 7:0, Output Voltage Select
+      unsigned int CURRENT_SEL: 4;  // Bits 11:8, Operating Current Select
+      unsigned int PDO_INDEX: 4;  // Bits 15:12, Source PDO index select
+      
+    } REQMSG_Fields;
+    struct {
+      byte byte0;
+      byte byte1;
+    };
+  unsigned long data;
+  };
+} RDO_DATA_T;
 
 void setup() {
-  Wire.setSDA(0);
-  Wire.setSCL(1);
   pinMode(13, INPUT);  // Set GPIO 13 as an input pin
   // put your setup code here, to run once:
   Wire.begin();        // Initialize I2C communication
@@ -154,10 +166,21 @@ void readSerialData() {
   // Check if data is available to read from the serial port
   if (Serial.available() > 0) {
     char receivedChar = Serial.read();  // Read the incoming character
-    if (receivedChar == 'p') {
+    if (receivedChar == 'r') {
       if (isI2CConnected) {
-        getPDSourcePowerCapabilities();
+        getPDSourcePowerCapabilities(); 
+        reqpdo();
       }
+    }
+    else if (receivedChar == 'o')
+    {
+      writeBuf[0] = 0b00010010; //turn on
+      i2c_write(SLAVE_ADDRESS, 0x06, writeBuf, 1);
+    }
+    else if (receivedChar == 'f')
+    {
+      writeBuf[0] = 0b00010001; //turn off
+      i2c_write(SLAVE_ADDRESS, 0x06, writeBuf, 1);
     }
     
   }
@@ -184,6 +207,91 @@ void getPDSourcePowerCapabilities() {
     SRC_SPRandEPRpdoArray[pdoIndex].byte1 = readBuf[i + 1];
     displayPDOInfo(pdoIndex);
   }
+}
+
+void reqpdo (){
+  RDO_DATA_T rdoData;
+    Serial.println("Enter PDO ID: ");
+    while (!Serial.available());  // 等待用戶輸入
+    String pdoID = Serial.readStringUntil('\n');
+    Serial.println("You entered PDO ID: " + pdoID);
+    rdoData.REQMSG_Fields.PDO_INDEX = pdoID.toInt();  // Source PDO index select is set to 1
+    if (SRC_SPRandEPRpdoArray[pdoID.toInt()-1].fixed.type != 0) {  // Check if it's not a "fixed" type
+      Serial.println("Enter voltage(mV) for APDO: ");
+      while (!Serial.available());  // 等待用戶輸入
+      String voltage = Serial.readStringUntil('\n');
+      Serial.println("You entered voltage: " + voltage + " mV");
+      if (((rdoData.byte1 >> 7) & 0x01) == 1){ // EPR PDO
+        rdoData.REQMSG_Fields.VOLTAGE_SEL = voltage.toInt()/200;  // Output Voltage in 200mV units
+      }else{  // SPR PDO
+        rdoData.REQMSG_Fields.VOLTAGE_SEL = voltage.toInt()/100;  // Output Voltage in 100mV units
+      }
+    }
+    
+    Serial.println("Operating Current Select:");
+    for (int i = 0; i <= 15; ++i) {
+      float current = 1.0 + i * 0.25;
+      if (i == 15) {
+        current = 5.0;  // Special case for 15
+      }
+      Serial.println(String(i) + ": " + String(current, 2) + "A");
+    }
+    while (!Serial.available());  
+    String current = Serial.readStringUntil('\n');
+    Serial.println("You entered current: " + current);
+    rdoData.REQMSG_Fields.CURRENT_SEL = current.toInt();  // Operating Current Select is set to 3000mA, scaled down by 100
+    writeBuf[0] = rdoData.byte0;  // Store the upper 8 bits
+    writeBuf[1] = rdoData.byte1;  // Store the lower 8 bits
+    i2c_write(SLAVE_ADDRESS, 0x31, writeBuf, 2);
+
+    for (int i = 0; i <= 15; i++){
+      // rdoData.REQMSG_Fields.VOLTAGE_SEL = rdoData.REQMSG_Fields.VOLTAGE_SEL + 1; //Increment
+      writeBuf[0] = rdoData.byte0;  // Store the upper 8 bits
+      writeBuf[1] = rdoData.byte1;  // Store the lower 8 bits
+      i2c_write(SLAVE_ADDRESS, 0x31, writeBuf, 2);
+      delay(500);
+    }
+    
+    while (1) {
+      // Read the current state of GPIO 13
+      currentState = digitalRead(13);
+  
+      // Check if the state has changed from LOW to HIGH
+      if (lastState == LOW && currentState == HIGH) {
+        // Trigger the software interrupt function
+        i2c_read(SLAVE_ADDRESS, 0x01, 1, readBuf);  
+        break;  // Exit the loop
+      }
+      // Update the last state for the next iteration
+      lastState = currentState;
+    }
+    
+    byte status = readBuf[0];  // Store the status byte
+    delay(10);
+    i2c_read(SLAVE_ADDRESS, 0x11, 2, readBuf);  // Read the voltage value
+    unsigned int VoltageValue = (readBuf[1] << 8) | readBuf[0];  // Parse the voltage value
+    delay(10);
+    i2c_read(SLAVE_ADDRESS, 0x12, 1, readBuf);  // Read the current value
+    unsigned int CurrentValue = readBuf[0];  // Parse the current value
+    delay(10);
+    i2c_read(SLAVE_ADDRESS, 0x13, 1, readBuf);  // Read the temperature value
+    unsigned int TempValue = readBuf[0];  // Parse the temperature value
+    delay(10);
+    i2c_read(SLAVE_ADDRESS, 0x33, 1, readBuf);  // Read the PDO message result value
+    unsigned int PD_MSGRLTValue = readBuf[0];  // Parse the PDO message result value
+    
+    // Display the information
+    String pdoType = (((rdoData.byte1 >> 7) & 0x01) == 1) ? "SRC_EPR_PDO" : "SRC_SPR_PDO";
+    String hexStatus = (status < 16) ? "0" + String(status, HEX) : String(status, HEX);
+    String response = (PD_MSGRLTValue != 1) ? "Reject" : "Success";
+    Serial.println(
+      pdoType + String(rdoData.REQMSG_Fields.PDO_INDEX) + " : " +
+      "status=0x" + hexStatus +
+      " RESPONSE=" + response +
+      " V=" + String(VoltageValue * 80) + "mV" +
+      " I=" + String(CurrentValue * 24) + "mA" +
+      " T=" + String(TempValue) + "°C"
+    );
 }
 
 void displayPDOInfo(int pdoIndex) {
