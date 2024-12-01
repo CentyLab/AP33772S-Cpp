@@ -5,6 +5,7 @@
 
 #include <Arduino.h>
 #include <Wire.h>
+#include "hardware/timer.h"
 
 #ifndef __AP33772S__
 #define __AP33772S__
@@ -16,11 +17,12 @@
 #define WRITE_BUFF_LENGTH 6
 #define SRCPDO_LENGTH 28
 
-#define CMD_STATUS    0x01
+#define CMD_STATUS    0x01 //Reset to 0 after very Read
 #define CMD_MASK      0x02
 #define CMD_OPMODE    0x03
 #define CMD_CONFIG    0x04
 #define CMD_PDCONFIG  0x05
+#define CMD_SYSTEM    0x06
 // Temperature setting register
 #define CMD_TR25     0x0C 
 #define CMD_TR50     0x0D 
@@ -48,6 +50,10 @@
 #define CMD_PD_CMDMSG 0x32
 #define CMD_PD_MSGRLT 0x33
 
+//Timer for AVS reminder signal
+#define ALARM_NUM1 1 // Timer 1
+#define ALARM_IRQ1 TIMER_IRQ_1
+#define DELAY1 1000000 // In usecond , 1s
 
 //DONE
 typedef enum
@@ -61,16 +67,16 @@ typedef enum
   OTP_MSK       = 1 << 6      // 1000 0000
 } AP33772_MASK;
 
-typedef enum
-{
-  STARTED_MSK   = 1 << 0,     // 0000 0001
-  READY_MSK     = 1 << 1,     // 0000 0010
-  NEWPDO_MSK    = 1 << 2,     // 0000 0100
-  UVP_MSK       = 1 << 3,     // 0001 0000
-  OVP_MSK       = 1 << 4,     // 0010 0000
-  OCP_MSK       = 1 << 5,     // 0100 0000
-  OTP_MSK       = 1 << 6      // 1000 0000
-} AP33772_STATUS;
+// typedef enum
+// {
+//   STARTED_MSK   = 1 << 0,     // 0000 0001
+//   READY_MSK     = 1 << 1,     // 0000 0010
+//   NEWPDO_MSK    = 1 << 2,     // 0000 0100
+//   UVP_MSK       = 1 << 3,     // 0001 0000
+//   OVP_MSK       = 1 << 4,     // 0010 0000
+//   OCP_MSK       = 1 << 5,     // 0100 0000
+//   OTP_MSK       = 1 << 6      // 1000 0000
+// } AP33772_STATUS;
 
 //Not sure if used
 typedef struct
@@ -150,53 +156,83 @@ typedef struct {
   };
 } RDO_DATA_T;
 
-class AP33772
+class AP33772S
 {
 public:
-  AP33772(TwoWire &wire = Wire);
+  AP33772S(TwoWire &wire = Wire);
   void begin();
+  void displayPDOInfo(int pdoIndex);
+  void displayProfiles();
+  void setFixPDO(int pdoIndex, int max_current);
+  void setPPSPDO(int pdoIndex, int target_voltage, int max_current);
+  void setAVSPDO(int pdoIndex, int target_voltage, int max_current);
   // void setVoltage(int targetVoltage); // Unit in mV
-  // void setPDO(uint8_t PDOindex);
-  // void setMaxCurrent(int targetMaxCurrent); // Unit in mA
-  // void setNTC(int TR25, int TR50, int TR75, int TR100);
-  // void setDeratingTemp(int temperature);
+  void setNTC(int TR25, int TR50, int TR75, int TR100);
+  bool setOutput(uint8_t flag);
   // void setMask(AP33772_MASK flag);
   // void clearMask(AP33772_MASK flag);
-  // void writeRDO();
-  // int readVoltage();
-  // int readCurrent();
-  // int getMaxCurrent() const;
-  // int readTemp();
-  // void printPDO();
-  // void reset();
 
+  // Monitor functions
+  int readTemp();
+  int readVoltage();
+  int readCurrent();
+
+  // Adjustment functions
+  int readVREQ();
+  int readIREQ();
+  int readVSELMIN();
+  void setVSELMIN(int voltage);
+  int readUVPTHR();
+  void setUVPTHR(int value);
+  int readOVPTHR();
+  void setOVPTHR(int value);
+  int readOCPTHR();
+  void setOCPTHR(int value);
+  int readOTPTHR();
+  void setOTPTHR(int value);
+  int readDRTHR();
+  void setDRTHR(int value);
+  
+  
+  // Legacy functions
   int getNumPDO();
   int getPPSIndex();
-  int getPDOMaxcurrent(uint8_t PDOindex);
-  int getPDOVoltage(uint8_t PDOindex);
-  int getPPSMinVoltage(uint8_t PPSindex);
-  int getPPSMaxVoltage(uint8_t PPSindex);
-  int getPPSMaxCurrent(uint8_t PPSindex);
-  void setSupplyVoltageCurrent(int targetVoltage, int targetCurrent);
-  byte existPPS = 0; // PPS flag for setVoltage()
+  int getAVSIndex();
+  
+  // byte existPPS = 0; // PPS flag for setVoltage()
+  // byte existAVS = 0; // AVS flag for setVoltage()
 
 private:
-  void i2c_read(byte slvAddr, byte cmdAddr, byte len);
-  void i2c_write(byte slvAddr, byte cmdAddr, byte len);
+  static void i2c_read(byte slvAddr, byte cmdAddr, byte len);
+  static void i2c_write(byte slvAddr, byte cmdAddr, byte len);
   TwoWire *_i2cPort;
-  byte readBuf[READ_BUFF_LENGTH] = {0};
-  byte writeBuf[WRITE_BUFF_LENGTH] = {0};
+  static byte readBuf[READ_BUFF_LENGTH];
+  static byte writeBuf[WRITE_BUFF_LENGTH];
   byte numPDO = 0;    // source PDO number
   byte indexPDO = 0;  // PDO index, start from index 0
   int reqPpsVolt = 0; // requested PPS voltage, unit:20mV
 
-  int8_t PPSindex = 8;
-
-  AP33772_STATUS_T ap33772_status = {0};
   EVENT_FLAG_T event_flag = {0};
   RDO_DATA_T rdoData = {0};
 
+  //Use for timer;
+  static int _voltageAVSbyte;
+  static int _currentAVSbyte;
+  static int _indexAVS;
+
+  static void timerISR1();
+  void setupAVSTimer();
+  void cancelAVSTimer();
+
   SRC_SPRandEPR_PDO_Fields SRC_SPRandEPRpdoArray[MAX_PDO_ENTRIES] = {0}; 
+
+
+  //Helper functions
+  void displaySPRVoltageMin(unsigned int current_max);
+  void displayEPRVoltageMin(unsigned int current_max);
+  void displayCurrentRange(unsigned int current_max);
+  int currentMap(int current);
+
 };
 
 #endif
