@@ -281,7 +281,7 @@ void AP33772S::timerISR1()
 
 void AP33772S::setupAVSTimer()
 {
-  // Set up 1s timer using timer1
+  // Set up 0.5s timer using timer1
   hw_set_bits(&timer_hw->inte, 1u << ALARM_NUM1);
   // Associate an interrupt handler with the ALARM_IRQ
   irq_set_exclusive_handler(ALARM_IRQ1, timerISR1);

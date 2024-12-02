@@ -53,7 +53,7 @@
 //Timer for AVS reminder signal
 #define ALARM_NUM1 1 // Timer 1
 #define ALARM_IRQ1 TIMER_IRQ_1
-#define DELAY1 1000000 // In usecond , 1s
+#define DELAY1 500000 // In usecond , 0.5s
 
 //DONE
 typedef enum
