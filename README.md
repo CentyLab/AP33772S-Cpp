@@ -43,6 +43,6 @@ setFixPDO(2,3000); // Requesting CV supply 9V max 3A fix PDO
 ## Example code
 Drag and drop file from "Compiled for PicoPD" to test out the code without compiling. However, some code does has load switch turn on by default. Ensure your connected device can handle the voltage at VBUS.
 
-Else if you would like to compile your own code, ensure to install [arlephilhower's Pico Core](https://github.com/earlephilhower/arduino-pico#installation) so that you can call Wire.setSCL() and Wire.setSDA()
+Else if you would like to compile your own code, ensure to install [Earlephilhower's Pico Core](https://github.com/earlephilhower/arduino-pico#installation) so that you can call Wire.setSCL() and Wire.setSDA()
 
 
