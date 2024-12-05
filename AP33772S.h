@@ -163,6 +163,7 @@ public:
   void begin();
   void displayPDOInfo(int pdoIndex);
   void displayProfiles();
+  void mapPPSAVSInfo();
   void setFixPDO(int pdoIndex, int max_current);
   void setPPSPDO(int pdoIndex, int target_voltage, int max_current);
   void setAVSPDO(int pdoIndex, int target_voltage, int max_current);
@@ -192,15 +193,15 @@ public:
   void setOTPTHR(int value);
   int readDRTHR();
   void setDRTHR(int value);
-  
-  
-  // Legacy functions
+
+  // Advance function to handle in other lib
+
   int getNumPDO();
   int getPPSIndex();
   int getAVSIndex();
   
-  // byte existPPS = 0; // PPS flag for setVoltage()
-  // byte existAVS = 0; // AVS flag for setVoltage()
+  byte existPPS = 0; // PPS flag for setVoltage()
+  byte existAVS = 0; // AVS flag for setVoltage()
 
 private:
   static void i2c_read(byte slvAddr, byte cmdAddr, byte len);
@@ -208,9 +209,9 @@ private:
   TwoWire *_i2cPort;
   static byte readBuf[READ_BUFF_LENGTH];
   static byte writeBuf[WRITE_BUFF_LENGTH];
-  byte numPDO = 0;    // source PDO number
-  byte indexPDO = 0;  // PDO index, start from index 0
-  int reqPpsVolt = 0; // requested PPS voltage, unit:20mV
+
+  int _indexPPS = -1; // for getPPSIndex();
+  int _indexAVS = -1; // for getAVSIndex();
 
   EVENT_FLAG_T event_flag = {0};
   RDO_DATA_T rdoData = {0};

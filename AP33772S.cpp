@@ -56,6 +56,9 @@ void AP33772S::begin()
         SRC_SPRandEPRpdoArray[pdoIndex].byte1 = readBuf[i + 1];
         // displayPDOInfo(pdoIndex);
     }
+
+    //Populate internal variable
+    mapPPSAVSInfo();
 }
 
 /**
@@ -107,6 +110,27 @@ void AP33772S::displayPDOInfo(int pdoIndex) {
     displayCurrentRange(SRC_SPRandEPRpdoArray[pdoIndex].fixed.current_max);  // Assuming displayCurrentRange function is available
   }
   Serial.println();
+}
+
+/**
+ * @brief Search through the list of profile and look for PPS, AVS
+ * @bug If system has 2 PPS profiles. The index only show the last one. Use displayPDOInfo() to check.
+ */
+void AP33772S::mapPPSAVSInfo()
+{
+  for(int i = 1; i<=13; i++)
+  {
+    if(i < 8 && SRC_SPRandEPRpdoArray[i-1].pps.type == 1)
+    {
+      Serial.println("Found PPS profile");
+      _indexPPS = i;
+    }
+    else if(i >= 8 && SRC_SPRandEPRpdoArray[i-1].avs.type == 1)
+    {
+      Serial.println("Found AVS profile");
+      _indexAVS = i;
+    }
+  }
 }
 
 
@@ -447,40 +471,67 @@ int AP33772S::readOVPTHR()
   i2c_read(AP33772S_ADDRESS, CMD_OVPTHR, 1);
   return readBuf[0] * 80; // I2C read return 80mV/LSB
 }
+
 /**
  * @brief Set OVP Threshold Voltage is the VREQ voltage plus OVPTHR offset voltage (mV)
  * @param voltage in mV
  */
 void AP33772S::setOVPTHR(int value)
 {
-  writeBuf[0] = value/80;
+  writeBuf[0] = value/80; //80mV/LSB
   i2c_write(AP33772S_ADDRESS, CMD_OVPTHR, 1);
 }
 
 int AP33772S::readOCPTHR()
 {
-  return 0;
+  i2c_read(AP33772S_ADDRESS, CMD_OCPTHR, 1);
+  return readBuf[0] * 50; // I2C read return 50mA/LSB
 }
 void AP33772S::setOCPTHR(int value)
 {
-
+  writeBuf[0] = value/50; // 50mA/LSB
+  i2c_write(AP33772S_ADDRESS, CMD_OCPTHR, 1);
 }
 int AP33772S::readOTPTHR()
 {
-  return 0;
+  i2c_read(AP33772S_ADDRESS, CMD_OTPTHR, 1);
+  return readBuf[0]; // I2C read return 1C/LSB
 }
 void AP33772S::setOTPTHR(int value)
 {
-
+  writeBuf[0] = value; // 1C/LSB
+  i2c_write(AP33772S_ADDRESS, CMD_OTPTHR, 1);
 }
 int AP33772S::readDRTHR()
 {
-  return 0;
+  i2c_read(AP33772S_ADDRESS, CMD_DRTHR, 1);
+  return readBuf[0]; // I2C read return 1C/LSB
 }
 void AP33772S::setDRTHR(int value)
 {
-  
+  writeBuf[0] = value; // 1C/LSB
+  i2c_write(AP33772S_ADDRESS, CMD_DRTHR, 1);
 }
+
+
+/**
+ * @brief Get internal PPS profile index (index start at 1)
+ * @return indexPPS
+ */
+int AP33772S::getPPSIndex()
+{
+  return _indexPPS;
+}
+
+/**
+ * @brief Get internal AVS profile index (index start at 1)
+ * @return indexAVS
+ */
+int AP33772S::getAVSIndex()
+{
+  return _indexAVS;
+}
+
 
 void AP33772S::displaySPRVoltageMin(unsigned int current_max) {
   switch (current_max) {
