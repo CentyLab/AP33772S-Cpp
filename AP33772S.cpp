@@ -123,12 +123,12 @@ void AP33772S::mapPPSAVSInfo()
     if(i < 8 && SRC_SPRandEPRpdoArray[i-1].pps.type == 1)
     {
       Serial.println("Found PPS profile");
-      _indexPPS = i;
+      _indexPPSUser = i;
     }
     else if(i >= 8 && SRC_SPRandEPRpdoArray[i-1].avs.type == 1)
     {
       Serial.println("Found AVS profile");
-      _indexAVS = i;
+      _indexAVSUser = i;
     }
   }
 }
@@ -520,7 +520,7 @@ void AP33772S::setDRTHR(int value)
  */
 int AP33772S::getPPSIndex()
 {
-  return _indexPPS;
+  return _indexPPSUser;
 }
 
 /**
@@ -529,7 +529,7 @@ int AP33772S::getPPSIndex()
  */
 int AP33772S::getAVSIndex()
 {
-  return _indexAVS;
+  return _indexAVSUser;
 }
 
 

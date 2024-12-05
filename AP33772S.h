@@ -210,8 +210,8 @@ private:
   static byte readBuf[READ_BUFF_LENGTH];
   static byte writeBuf[WRITE_BUFF_LENGTH];
 
-  int _indexPPS = -1; // for getPPSIndex();
-  int _indexAVS = -1; // for getAVSIndex();
+  int _indexPPSUser = -1; // for getPPSIndex();
+  int _indexAVSUser = -1; // for getAVSIndex();
 
   EVENT_FLAG_T event_flag = {0};
   RDO_DATA_T rdoData = {0};
