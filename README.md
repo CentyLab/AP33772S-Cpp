@@ -12,7 +12,8 @@ Main feature of the library:
 + Voltage reading
 + Current reading
 + NTC temperature reading
-+ Set/read different safety flags
++ Output back-to-back NMOS control
++ Set/read different safety values
 
 ## Using Wire1
 The RP2040 has two different I2C physical driver, `Wire` (I2C0) and `Wire1`(I2C1). The default channel is selected to be `Wire` in AP33772S Constructor but one can overwrite it. PicoPD Pro connect to AP33772S using I2C0 at pin 0 and pin 1.
