@@ -3,6 +3,8 @@ AP33772**S** is a USB PD3.1 Sink controller that communicate via I2C. This is an
 
 The code has been written for RP2040 micro-controller and ultilizing timer1. Adaptation to other micro-controler will require update in I2C Read/Write and timer function to maintain AVS operation. A repeat AVS request in less than 750ms is needed, else the charger will issue a hard reset.
 
+![AVSprofileChange](Example/AVSprofileChange.gif?raw=true "AVS")
+
 Main feature of the library:
 + Fix voltage request
 + PPS voltage/current request
