@@ -23,7 +23,7 @@ AP33772S usbpd(Wire1);
 
 Example profile from UGREEN 140W charger
 
-![Alt text](example/ProfileDisplayUGREEN140W.png?raw=true "Title")
+![UGREEN140WProfile](Example/ProfileDisplayUGREEN140W.png?raw=true "Title")
 
 When setting any power mode like fixed PDO, PPS, or AVS, the code require you to also input the maximum current expected.
 
