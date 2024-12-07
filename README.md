@@ -3,7 +3,7 @@ AP33772**S** is a USB PD3.1 Sink controller that communicate via I2C. This is an
 
 The code has been written for RP2040 micro-controller and ultilizing timer1. Adaptation to other micro-controler will require update in I2C Read/Write and timer function to maintain AVS operation. A repeat AVS request in less than 750ms is needed, else the charger will issue a hard reset.
 
-![AVSprofileChange](Example/AVSprofileChange.gif?raw=true "AVS")
+![AVSprofileChange](examples/AVSprofileChange.gif?raw=true "AVS")
 
 Main feature of the library:
 + Fix voltage request
@@ -26,7 +26,7 @@ AP33772S usbpd(Wire1);
 
 Example profile from UGREEN 140W charger
 
-![UGREEN140WProfile](Example/ProfileDisplayUGREEN140W.png?raw=true "Title")
+![UGREEN140WProfile](examples/ProfileDisplayUGREEN140W.png?raw=true "Title")
 
 When setting any power mode like fixed PDO, PPS, or AVS, the code require you to also input the maximum current expected.
 
