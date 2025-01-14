@@ -363,8 +363,8 @@ int AP33772S::readTemp()
  */
 int AP33772S::readVoltage()
 {
-    i2c_read(AP33772S_ADDRESS, CMD_VOLTAGE, 1);
-    return readBuf[0] * 80; // I2C read return 80mV/LSB
+    i2c_read(AP33772S_ADDRESS, CMD_VOLTAGE, 2);
+    return ((readBuf[1] << 8) | readBuf[0]) * 80; // I2C read return 80mV/LSB
 }
 
 /**
